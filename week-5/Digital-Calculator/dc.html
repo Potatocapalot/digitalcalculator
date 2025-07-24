@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator: Functional Programming</title>
+    <!-- //tailwindcsscmd -->
+    <script src="https://cdn.tailwindcss.com/"></script>
+    <style>
+        /* Custom styles for the calculator */
+        body{
+            font-family: Inter, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f4f8;
+        }
+        /* To ensure the calculator is centered and well structured */
+        .calculator-grid{
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-gap: 1rem;
+            max-width: 400px;
+            width:90%;
+            padding: 1.5rem;
+            background-color: #1a202c;
+            border-radius: 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); 
+            box-shadow: 0 10px 10px -5px rgba(0,0,0,0.1); 
+           
+        }
+        .output{
+            grid-column: 1/-1; /*spans all column */
+            background-color: rgba(0,0,0, 0.75);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 1rem;
+           word-wrap: break-word;   /*This will wrap long numbers */
+           word-break: break-all;   /*This will break words if necessary */
+           border-radius: 0.75rem;
+           min-height: 80px;
+        }
+        .output .previous-operand{
+            color:rgba(255,255,255,0.75);
+            font-size: 1.5rem;
+        }
+        .output .current-operand {
+            color:white;
+            font-size: 2.5rem;
+        }
+        .calculator-grid>button{
+            cursor: pointer;
+            font-size: 1.75rem;
+            outline: none;
+            background-color: rgba(255,255,255,0.1);
+            border: none;
+            border-radius: 1rem;
+            padding: 1rem 0.5rem;
+            transition: background-color, 0.2s, ease-in-out, transform;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0, 0.1);
+            box-shadow: 0 2px 4px -1px rgba(0,0,0, 0.06);
+        }
+        .calculator-grid>button:hover{
+            background-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px);  /* slightly lift on hover */
+        }
+        .calculator-grid>button:active{
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        .span-2{
+            grid-column: span 2;
+        }
+        .operator-btn{
+            background-color: #ff9f43;
+        }
+        .equals-btn{
+            background-color: #4caf50;
+        }
+        .clear-btn{
+            background-color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator-grid">
+        <div class="output">
+            <div class="previous-operand" data-previous-operand></div>
+            <div class="current-operand" data-current-operand></div>
+        </div>
+        <button class="span-2 clear-btn" data-clear>
+            <b>AC</b>
+        </button>
+        <button data-delete>
+            <b>DEL</b>
+        </button>
+        <button class="operator-btn" data-operation>
+            <b>÷</b>
+        </button>
+        <button data-number>1</button>
+        <button data-number>2</button>
+        <button data-number>3</button>
+        <button class="operator-btn" data-operation>
+            <b>*</b>
+        </button>
+        <button data-number>4</button>
+        <button data-number>5</button>
+        <button data-number>6</button>
+        <button class="operator-btn" data-operation>
+            <b>+</b>
+        </button>
+        <button data-number>7</button>
+        <button data-number>8</button>
+        <button data-number>9</button>
+        <button class="operator-btn" data-operation>
+            <b>-</b>
+        </button>
+        <button data-number>
+            <b>.</b>
+        </button>
+        <button data-number>0</button>
+        <button class="span-2" data-equals>
+            <b>=</b>
+        </button>
+    </div>
+    <script>
+        // get all references to DOM elements
+        const numberButtons= document.querySelectorAll('[data-number]')
+        const operationButtons= document.querySelectorAll('[data-operation]')
+        const equalsButton= document.querySelector('[data-equals]')
+        const deleteButton= document.querySelector('[data-delete]')
+        const clearButton= document.querySelector('[data-clear]')
+        const previousOperandTextElement= document.querySelector('[data-previous-operand]')
+        const currentOperandTextElement= document.querySelector('[data-current-operand]')
+        // below are the global variables to hold the calculatator state
+        let currentOperand= ''
+        let previousOperand= ''
+        let operation= undefined
+        //the function below clears all operands and the operation, resetting the calculator's state
+        const clear=()=>{
+            currentOperand= ''
+            previousOperand= ''
+            operation= undefined
+        }
+        //the function below deletes the last character from the current operand
+        const del=()=>{
+            currentOperand= currentOperand.toString().slice(0, -1)
+        }
+    //    // This function below appends a number to the current operand,
+    //      * it prevents multiple *decimal point
+    //      * @param{string} number - the number to append
+        const appendNumber=(number)=>{
+        if(number==='.'&&currentOperand.includes('.')) return;
+        // the above will prevent multiple decimal points from being typed
+        currentOperand= currentOperand.toString()+ number.toString()
+    }
+    const chooseOperations=(selectedOperation)=>{
+        if(currentOperand==='') return; //do nothing if there's no current operand
+        if(previousOperand!== ''){
+            compute() //compute if there's a pending operation
+        }
+        operation= selectedOperation
+        previousOperand= currentOperand
+        currentOperand= ''
+        // clear current operand for new input
+    }
+    const compute=()=>{
+        let computation;
+        const prev= parseFloat(previousOperand)
+        const current= parseFloat(currentOperand)
+        if(isNaN(prev)||isNaN(current)) return; //do nothing if operands are not numbers
+        switch(operation){
+            case '+':
+                computation= prev+current
+                break;
+            case '-':
+                computation= prev-current
+                break;
+            case '*':
+                computation= prev*current
+                break;
+            case '÷':
+                if(current===0){
+                    computation= 'error: div by 0' //handled division by 0
+                }
+                else{
+                    computation= prev/current 
+            }break
+            default:
+                return; //do nothing if no valid operation                
+        }
+        currentOperand= computation.toString()
+        operation= undefined
+        previousOperand= ''
+    }
+    /**
+     * format a number for display, adding commas for thousands and handling decimals
+     * @param {string} number- the number string to format
+     * @return {string} the formatted number string
+     */
+    const getDisplayNumber= (number)=>{
+        const stringNumber= number.toString()
+        const integerDigit= parseFloat(stringNumber.split('.')[0])
+        const decimalDigit= stringNumber.split('.')[1]
+        let integerDisplay;
+        if(isNaN(integerDigit)){
+            integerDisplay= ''
+        }
+        else{
+            integerDisplay= integerDigit.toLocaleString('en', {maximumFractionDigits: 0})
+        }
+        if(decimalDigit!= null){
+            return `${integerDisplay}.${decimalDigit}`
+        }
+        else{
+            return integerDisplay;
+
+        }
+    }
+    /**
+     * update the text content of the displayed element based on the current calculator state
+     */ 
+    const updateDisplay=()=>{
+        currentOperandTextElement.innerText= getDisplayNumber(currentOperand)
+        if(operation!= null){
+            previousOperandTextElement.innerText= `${getDisplayNumber(previousOperand)} ${operation}`
+        }
+        else{
+            previousOperandTextElement.innerText= ''
+        }
+    }
+    //event listeners
+    //add click listeners for number buttons
+    numberButtons.forEach(button=>{
+        button.addEventListener('click',()=>{
+            appendNumber(button.innerText)
+            updateDisplay()
+        })
+    })
+    // add click listeners for operations buttons
+    operationButtons.forEach(button=>{
+        button.addEventListener('click', ()=>{
+            chooseOperations(button.innerText)
+            updateDisplay()
+        })
+    })    
+    // add click listener fo the equals button
+    equalsButton.addEventListener('click', button=>{
+        compute()
+        updateDisplay()
+    })
+    // add eventlistener for clear button
+    clearButton.addEventListener('click', button=>{
+        clear()
+        updateDisplay()
+    })
+    // add click for del button
+    deleteButton.addEventListener('click', button=>{
+        del()
+        updateDisplay()
+    })
+    // initial display update
+    updateDisplay()
+    </script>
+</body>
+</html>
